@@ -1,12 +1,5 @@
 #include "gtest/gtest.h"
-#define TESTING_INTERNAL_STATES
 #include "SharedInt.h"
-
-// Tests that to objects point to the same data.
-void EXPECT_SAME(const SharedInt& a, const SharedInt& b)
-{
-    EXPECT_EQ(a.d.pointer, b.d.pointer);
-}
 
 GTEST_TEST(BasicTest, DefaultConstructed)
 {
@@ -24,8 +17,8 @@ GTEST_TEST(BasicTest, DefaultConstructed)
     EXPECT_EQ(0, SharedInt::AllocatedCount());
 
     //All three variables point to the shared null
-    EXPECT_SAME(a, b);
-    EXPECT_SAME(b, c);
+    EXPECT_EQ(&a.d.constData(), &b.d.constData());
+    EXPECT_EQ(&b.d.constData(), &c.d.constData());
 }
 
 GTEST_TEST(BasicTest, StandardUsage)
@@ -101,9 +94,8 @@ GTEST_TEST(BasicTest, Failure)
 
 }
 
-GTEST_TEST(BasicTest, BareBone)
+GTEST_TEST(BasicTest, Count)
 {
-
     COW<int> a(2);
     EXPECT_EQ(2, a.constData());
     EXPECT_EQ(1, a.header().count);

@@ -100,28 +100,26 @@ private:
     typedef std::atomic_uint64_t Count;
     static const COW<T>& sharedNull();
 
-#ifdef TESTING_INTERNAL_STATES
-public:
-#endif
-
     T* pointer = nullptr;
 
     // The rest is memory management.
+    // 
     // In addition to the space needed by T, we transparently allocate 
-    // space for a count variable and a delete function before
-    // the space needed by the actual object.
+    // space for a delete function and a count variable before the space
+    // needed by the actual object.
     // 
     // Header                            pointer points here
     // |                                 | 
     // +----------------+----------------+----------------+----------------
     // |    deleter     | atomic_counter +  actual data T ...
-    // +----------------+----------------+----------------+----------------o by T*.
+    // +----------------+----------------+----------------+----------------
     typedef void(*Deleter)(COW<T>*);
     struct Header
     {
         Deleter deleter;
         Count count;
     };
+
     inline Header& header()const
     {
         static_assert(sizeof(Deleter) + sizeof(Count) == sizeof(Header), "We have a problem.");
@@ -142,6 +140,7 @@ public:
         new (data) T(std::forward<Args>(args)...);
         return data;
     }
+
     static void Destroy(COW<T>* data)noexcept
     {
         Header& h = data->header();
@@ -151,6 +150,7 @@ public:
     }
 private:
     COW(Header* header, T* data)noexcept;
+    friend class BasicTest_Count_Test;
 };
 
 template<typename T>
