@@ -44,8 +44,8 @@ struct PrivateInt
 };
 
 bool PrivateInt::allowAllocations = true;
-std::atomic<std::size_t> PrivateInt::allocationCount = 0;
-std::atomic<std::size_t> PrivateInt::referenceCount = 0;
+std::atomic<std::size_t> PrivateInt::allocationCount = { 0 };
+std::atomic<std::size_t> PrivateInt::referenceCount = { 0 };
 
 void SharedInt::AllowAllocations(bool on)
 {

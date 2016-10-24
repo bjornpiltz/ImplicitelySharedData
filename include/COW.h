@@ -23,6 +23,7 @@ SOFTWARE.
 #pragma once
 #include <atomic>
 #include <memory>
+#include <cstdlib>
 
 /**
  * This is an implementation of the copy-on write idiom 
@@ -97,7 +98,7 @@ public:
     void detach();
 
 private:
-    typedef std::atomic_uint64_t Count;
+    typedef std::atomic<uint64_t> Count;
     static const COW<T>& sharedNull();
 
     T* pointer = nullptr;
@@ -228,7 +229,7 @@ inline const COW<T>& COW<T>::sharedNull()
 {
     static struct
     {
-        Header header = { nullptr, 2 };// We set the count to 2 so delete is never called.
+        Header header = { nullptr, { 2 } };// We set the count to 2 so delete is never called.
         T data; 
         COW instance{ &header, &data };
     }shared_null;
