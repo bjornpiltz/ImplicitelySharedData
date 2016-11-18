@@ -134,7 +134,7 @@ struct ReferenceCountedData : public ReferenceCounted
     }
     template<typename... Args>
     ReferenceCountedData(Args ... args)
-        : ReferenceCounted{ &Destroy, 1 }
+        : ReferenceCounted{ &Destroy, {1} }
         , data(std::forward<Args>(args)...)
     {
     }
@@ -219,7 +219,7 @@ inline COW<T>::COW(Args... args)
 
 template<typename T>
 inline COW<T>::COW()
-    : pointer(&Singleton<ReferenceCountedData<T>::SharedNull>::get())
+    : pointer(&Singleton<typename ReferenceCountedData<T>::SharedNull>::get())
 {
     ++pointer->count;
 }
