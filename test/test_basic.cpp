@@ -18,8 +18,8 @@ GTEST_TEST(BasicTest, DefaultConstructed)
     EXPECT_EQ(0, SharedInt::AllocatedCount());
 
     //All three variables point to the shared null
-    EXPECT_EQ(&a.d.constData(), &b.d.constData());
-    EXPECT_EQ(&b.d.constData(), &c.d.constData());
+    EXPECT_EQ(a.d.pointer, b.d.pointer);
+    EXPECT_EQ(b.d.pointer, c.d.pointer);
 }
 
 GTEST_TEST(BasicTest, StandardUsage)
@@ -30,12 +30,11 @@ GTEST_TEST(BasicTest, StandardUsage)
         // ReferenceCount will include the "shared null" object,
         // so it will always be 1 larger than expected.
         EXPECT_EQ(1, SharedInt::ReferenceCount());
-        SharedInt::AllowAllocations(true);
 
         SharedInt x(1), y(2), z(3);
 
-        // Three variables have been allocated on the heap.
-        EXPECT_EQ(3, SharedInt::AllocatedCount());
+        // No variables have been allocated on the heap.
+        EXPECT_EQ(0, SharedInt::AllocatedCount());
 
         EXPECT_EQ(3+1, SharedInt::ReferenceCount());
 
@@ -99,27 +98,27 @@ GTEST_TEST(BasicTest, Count)
 {
     COW<int> a(2);
     EXPECT_EQ(2, a.constData());
-    EXPECT_EQ(1, a.header().count);
+    EXPECT_EQ(1, a.count());
 
     COW<int> b = COW<int>(4);
     EXPECT_EQ(4, b.constData());
-    EXPECT_EQ(1, b.header().count);
+    EXPECT_EQ(1, b.count());
 
     COW<int> c = a;
-    EXPECT_EQ(2, a.header().count);
-    EXPECT_EQ(2, c.header().count);
+    EXPECT_EQ(2, a.count());
+    EXPECT_EQ(2, c.count());
     EXPECT_EQ(c.constData(), a.constData());
 
     a.data() = a.constData();
-    EXPECT_EQ(1, a.header().count);
-    EXPECT_EQ(1, c.header().count);
+    EXPECT_EQ(1, a.count());
+    EXPECT_EQ(1, c.count());
     EXPECT_EQ(2, a.constData());
     EXPECT_EQ(4, b.constData());
     EXPECT_EQ(2, c.constData());
 
     c.data() = a.constData();
-    EXPECT_EQ(1, a.header().count);
-    EXPECT_EQ(1, c.header().count);
+    EXPECT_EQ(1, a.count());
+    EXPECT_EQ(1, c.count());
 }
 
 static int ctor_count = 0;

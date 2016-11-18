@@ -83,11 +83,12 @@ class COW
 {
 public:
     COW();// noexcept if T() is noexcept
-    template<typename... Args>
-    explicit COW(Args ... args);// Forwarding constructor
     COW(const COW& other)noexcept;
     COW& operator=(const COW& other)noexcept;
     ~COW();
+
+    template<typename... Args>
+    explicit COW(Args ... args);// Forwarding constructor
 
           T* operator->();
     const T* operator->()const noexcept;
@@ -99,104 +100,58 @@ public:
     void detach();
 
 private:
-    typedef std::atomic<uint64_t> Count;
+    struct ReferenceCounted* pointer = nullptr;
 
-    T* pointer = nullptr;
-
-    // The rest is memory management.
-    // 
-    // In addition to the space needed by T, we transparently allocate 
-    // space for a delete function and a count variable before the space
-    // needed by the actual object.
-    // 
-    // Header                            pointer points here
-    // |                                 | 
-    // +----------------+----------------+----------------+----------------
-    // |    deleter     | atomic_counter +  actual data T ...
-    // +----------------+----------------+----------------+----------------
-    typedef void(*Deleter)(COW<T>*);
-    struct Header
-    {
-        Deleter deleter;
-        Count count;
-    };
-
-    inline Header& header()const
-    {
-        static_assert(sizeof(Deleter) + sizeof(Count) == sizeof(Header), "We have a problem.");
-        return *reinterpret_cast<Header*>(reinterpret_cast<unsigned char *>(pointer) - sizeof(Header));
-    }
-    
-    template<typename... Args>
-    static T* Create(Args ... args)
-    {
-        // We have been asked to create an object of type T.
-        void* memory = std::malloc(sizeof(Header) + sizeof(T));
-        Header* h = reinterpret_cast<Header*>(memory);
-
-        new(&h->count)Count(1);
-        h->deleter = &Destroy;
-
-        T* data = reinterpret_cast<T*>(h+1);
-        new (data) T(std::forward<Args>(args)...);
-        return data;
-    }
-
-    static void Destroy(COW<T>* data)noexcept
-    {
-        Header& h = data->header();
-        h.count.~Count();
-        data->pointer->~T();
-        std::free(&h);
-    }
 private:
-    COW(Header* header, T* data)noexcept;
     friend class BasicTest_Count_Test;
+    friend class BasicTest_DefaultConstructed_Test;
+    int count()const;
+};
 
-    struct SharedNull
-    {
-        Header header = { nullptr, { 2 } };// We set the count to 2 so delete is never called.
-        T data;
-        COW instance{ &header, &data };
-    };
 
+
+//////////////////////////////////////////////////////////////////////////////
+//                    Implementation details follow:                        //
+//////////////////////////////////////////////////////////////////////////////
+
+/**
+ * This helper class holds the atomic count and a function pointer do a 'deleter'.
+ */
+struct ReferenceCounted
+{
+    ReferenceCounted()=delete;
+    void(*deleter)(ReferenceCounted*);
+    std::atomic<uint64_t> count;
 };
 
 template<typename T>
-inline COW<T>::COW()
-    : pointer(Singleton<SharedNull>::get().instance.pointer)
+struct ReferenceCountedData : public ReferenceCounted
 {
-    ++header().count;
-}
-
-template<typename T>
-template<typename... Args>
-inline COW<T>::COW(Args... args)
-    : pointer(Create(std::forward<Args>(args)...))
-{
-}
-
-
-template<typename T>
-inline COW<T>::COW(Header*, T* data)noexcept
-    : pointer(data)
-{
-    //assert(pointer==reinterpret_cast<T*>(header+1));
-}
+    T data;
+    static void Destroy(ReferenceCounted* pointer)noexcept
+    {
+        delete reinterpret_cast<ReferenceCountedData*>(pointer);
+    }
+    template<typename... Args>
+    ReferenceCountedData(Args ... args)
+        : ReferenceCounted{ &Destroy, 1 }
+        , data(std::forward<Args>(args)...)
+    {
+    }
+    struct SharedNull : public ReferenceCountedData<T>
+    {
+        SharedNull()
+        {
+            count++;// We set the count to 2 so delete is never called.
+        }
+    };
+};
 
 template<typename T>
 inline COW<T>::COW(const COW & other)noexcept
     : pointer(other.pointer)
 {
-    ++header().count;
-}
-
-template<typename T>
-inline COW<T>::~COW()
-{
-    auto& h = header();
-    if (--h.count==0)
-        h.deleter(this);
+    ++pointer->count;
 }
 
 template<typename T>
@@ -209,38 +164,20 @@ inline COW<T>& COW<T>::operator=(const COW& other)noexcept
 template<typename T>
 inline T* COW<T>::operator->()
 {
-    detach();
-    return pointer;
+    return &data();
 }
 
 template<typename T>
 inline const T* COW<T>::operator->()const noexcept
 {
-    return pointer;
+    return &constData();
 }
 
 template<typename T>
-inline T& COW<T>::data()
+inline int COW<T>::count()const
 {
-    detach();
-    return *pointer;
-}
-
-template<typename T>
-inline const T& COW<T>::constData()const noexcept
-{
-    return *pointer;
-}
-
-template<typename T>
-inline void COW<T>::detach()
-{
-    auto& count = header().count;
-    if (count>1)
-    {
-        pointer = Create<const T&>(*pointer);
-        --count;
-    }
+    // This function should only ever be accessed through the unit tests.
+    return (int)pointer->count;
 }
 
 template<typename T>
@@ -248,3 +185,49 @@ inline void COW<T>::swap(COW& other)noexcept
 {
     std::swap(pointer, other.pointer);
 }
+
+template<typename T>
+inline T& COW<T>::data()
+{
+    detach();
+    return reinterpret_cast<ReferenceCountedData<T>*>(pointer)->data;
+}
+
+template<typename T>
+inline const T& COW<T>::constData()const noexcept
+{
+    return reinterpret_cast<ReferenceCountedData<T>*>(pointer)->data;
+}
+
+template<typename T>
+inline void COW<T>::detach()
+{
+    auto& count = pointer->count;
+    if (count>1)
+    {
+        pointer = new ReferenceCountedData<T>(constData());
+        --count;
+    }
+}
+
+template<typename T>
+template<typename... Args>
+inline COW<T>::COW(Args... args)
+    : pointer(new ReferenceCountedData<T>(std::forward<Args>(args)...))
+{
+}
+
+template<typename T>
+inline COW<T>::COW()
+    : pointer(&Singleton<ReferenceCountedData<T>::SharedNull>::get())
+{
+    ++pointer->count;
+}
+
+template<typename T>
+inline COW<T>::~COW()
+{
+    if (--pointer->count==0)
+        pointer->deleter(pointer);
+}
+
