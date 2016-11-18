@@ -27,7 +27,7 @@ wrap_test(test_basic test_basic.cpp SharedInt.h SharedInt.cpp)
 wrap_test(wont_fail will_fail.cpp)
 
 # Add a couple of failing-to-compile targets
-foreach(i RANGE 1 2)
+foreach(i RANGE 1 3)
 	add_executable(will_fail${i} will_fail.cpp ${COW_HDRS})
 	target_compile_definitions(will_fail${i} PRIVATE FAIL_LEVEL=${i})
 	set_target_properties(will_fail${i} PROPERTIES

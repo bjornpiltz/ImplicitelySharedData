@@ -3,10 +3,21 @@
 
 struct Private { int data=0; };
 
+// This should be allowed even if ForwardDeclarared is never defined.
+struct ForwardDeclaration
+{
+    COW<struct ForwardDeclarared> d;
+};
+
 #ifndef FAIL_LEVEL
+
+struct ForwardDeclarared {};
 
 GTEST_TEST(WontFail, empty)
 {
+    ForwardDeclaration object1, object2;
+    object1 = object2;
+    object2.d.detach();
 }
 
 #elif FAIL_LEVEL==1
@@ -26,5 +37,10 @@ GTEST_TEST(WillFail, NoImplicitConVersion)
     COW<int> b = 4; // no implicit conversion should be allowed
 }
 #elif FAIL_LEVEL==3
-I can't think of another failing compile test right now.
+GTEST_TEST(WillFail, NotDefinedType)
+{
+    // The following line would be an error like:
+    // error C2079: 'COW<ForwardDeclaration>::SharedNull::data' uses undefined struct 'ForwardDeclaration'
+    ForwardDeclaration object;
+}
 #endif
