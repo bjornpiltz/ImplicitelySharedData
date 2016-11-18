@@ -29,17 +29,24 @@ SOFTWARE.
 * MyClass& singleton = Singleton<MyClass>::get();
 */
 template<class Type>
-struct Singleton
+class Singleton
 {
+public:
+    static Type& get();
+
+private:
     static std::unique_ptr<Type> instance;
     static std::once_flag flag;
-    static Type& get()
-    {
-        auto& capture = instance;// lambdas can't capture static members
-        std::call_once(flag, [&capture] { capture.reset(new Type{}); });
-        return *instance.get();
-    }
 };
+
+// Implementation:
+template<class Type>
+inline Type& Singleton<Type>::get()
+{
+    auto& capture = instance;// lambdas can't capture static members
+    std::call_once(flag, [&capture] { capture.reset(new Type{}); });
+    return *instance.get();
+}
 
 template<class Type>
 std::unique_ptr<Type> Singleton<Type>::instance;
