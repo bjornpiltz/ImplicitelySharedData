@@ -21,6 +21,7 @@ SOFTWARE.
 */
 
 #pragma once
+#include "Singleton.h"
 #include <atomic>
 #include <memory>
 #include <cstdlib>
@@ -99,7 +100,6 @@ public:
 
 private:
     typedef std::atomic<uint64_t> Count;
-    static const COW<T>& sharedNull();
 
     T* pointer = nullptr;
 
@@ -152,11 +152,19 @@ private:
 private:
     COW(Header* header, T* data)noexcept;
     friend class BasicTest_Count_Test;
+
+    struct SharedNull
+    {
+        Header header = { nullptr, { 2 } };// We set the count to 2 so delete is never called.
+        T data;
+        COW instance{ &header, &data };
+    };
+
 };
 
 template<typename T>
 inline COW<T>::COW()
-    : pointer(sharedNull().pointer)
+    : pointer(Singleton<SharedNull>::get().instance.pointer)
 {
     ++header().count;
 }
@@ -222,19 +230,6 @@ template<typename T>
 inline const T& COW<T>::constData()const noexcept
 {
     return *pointer;
-}
-
-template<typename T>
-inline const COW<T>& COW<T>::sharedNull()
-{
-    static struct
-    {
-        Header header = { nullptr, { 2 } };// We set the count to 2 so delete is never called.
-        T data; 
-        COW instance{ &header, &data };
-    }shared_null;
-
-    return shared_null.instance;
 }
 
 template<typename T>

@@ -1,5 +1,6 @@
 #include "gtest/gtest.h"
 #include "SharedInt.h"
+#include "Singleton.h"
 
 GTEST_TEST(BasicTest, DefaultConstructed)
 {
@@ -183,4 +184,43 @@ GTEST_TEST(BasicTest, perfectForwarding)
     EXPECT_EQ(2, ctor_count);
     EXPECT_EQ(1, copy_count);
     EXPECT_EQ(1, assignment_count);
+}
+
+struct ThereCanBeOnlyOne
+{
+    int value = 1;
+    static int count;
+    ThereCanBeOnlyOne()
+    {
+        EXPECT_EQ(count, 0);
+        count++;
+    }
+//  MOCK_METHOD0(MakeSureDtorIsCalled, void());
+    ~ThereCanBeOnlyOne()
+    {
+        EXPECT_EQ(count, 1);
+        //MakeSureDtorIsCalled();
+        --count;
+    }
+    ThereCanBeOnlyOne(const ThereCanBeOnlyOne&)=delete;
+    ThereCanBeOnlyOne& operator=(const ThereCanBeOnlyOne&)=delete;
+};
+
+int ThereCanBeOnlyOne::count=0;
+
+GTEST_TEST(BasicTest, Singleton)
+{
+    EXPECT_EQ(ThereCanBeOnlyOne::count, 0);
+    ThereCanBeOnlyOne& one = Singleton<ThereCanBeOnlyOne>::get();
+    EXPECT_EQ(ThereCanBeOnlyOne::count, 1);
+    EXPECT_EQ(one.value, 1);
+    ThereCanBeOnlyOne& two = Singleton<ThereCanBeOnlyOne>::get();
+    EXPECT_EQ(ThereCanBeOnlyOne::count, 1);
+    one.value = 2;
+    EXPECT_EQ(one.value, 2);
+    EXPECT_EQ(two.value, 2);
+
+    // TODO: make the following line work,
+    // Otherwise we are not testing that the dtor is called.
+//  EXPECT_CALL(one, MakeSureDtorIsCalled());
 }
