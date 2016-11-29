@@ -32,7 +32,7 @@ before_script:
   # Create build folder
   - mkdir build_release
   # Release build
-  - cd build_release && cmake -DCMAKE_BUILD_TYPE=release ..
+  - cd build_release && ${DEPS_DIR}/cmake/bin/cmake -DCMAKE_BUILD_TYPE=release ..
 
 script:
   - cd build_release && make check
