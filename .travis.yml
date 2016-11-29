@@ -1,0 +1,32 @@
+# http://travis-ci.org configuration file
+language: cpp
+
+compiler:
+  - gcc
+  - clang:
+
+sudo: false
+
+addons:
+  apt:
+    packages:
+      - cmake
+      - g++-4.8
+
+env:
+  global:
+    - SOURCE=${TRAVIS_BUILD_DIR}/src
+    - BUILD=${TRAVIS_BUILD_DIR}/build
+
+before_script:
+  - export CXX="g++-4.8"
+  # Create build folder
+  - mkdir ${TRAVIS_BUILD_DIR}/build
+  - cd ${TRAVIS_BUILD_DIR}/build
+  # Release build
+  - cmake -DCMAKE_BUILD_TYPE=release . ${TRAVIS_BUILD_DIR}/src
+
+script:
+  - make check
+
+
