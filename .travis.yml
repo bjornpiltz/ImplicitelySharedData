@@ -16,10 +16,14 @@ addons:
       - cmake
       - cmake-data
       - g++-4.8
+      - lcov
 
 env:
   global:
     - BUILD_RELEASE=${TRAVIS_BUILD_DIR}/build
+
+before_install:
+ - gem install coveralls-lcov
 
 before_script:
   - export CXX="g++-4.8"
@@ -31,4 +35,13 @@ before_script:
 script:
   - cd $BUILD_RELEASE && make check
 
+after_success:
+  - cd ${TRAVIS_BUILD_DIR}
+  # If GCC: compute code coverage and export it to coveralls
+  - if [ "$CC" = "gcc" ];
+    then
+      lcov --capture --directory $BUILD_RELEASE --base-directory=${TRAVIS_BUILD_DIR}--output-file=coverage.info;
+      lcov --extract coverage.info "*/ImplicitelySharedData/include/*" --output-file=coverage.info;
+      coveralls-lcov coverage.info;
+    fi
 

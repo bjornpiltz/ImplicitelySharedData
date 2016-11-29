@@ -21,14 +21,14 @@ macro(wrap_test test_name)
 endmacro()
 
 if(NOT WIN32)
-        # Defines CMAKE_USE_PTHREADS_INIT and CMAKE_THREAD_LIBS_INIT.
-        find_package(Threads)
-        if (CMAKE_USE_PTHREADS_INIT)  # The pthreads library is available and allowed.
-                add_definitions(-DGTEST_HAS_PTHREAD=1)
-                target_link_libraries(gtest ${CMAKE_THREAD_LIBS_INIT})
-        else()
-                add_definitions(-DGTEST_HAS_PTHREAD=0)
-        endif()
+    # Defines CMAKE_USE_PTHREADS_INIT and CMAKE_THREAD_LIBS_INIT.
+    find_package(Threads)
+    if (CMAKE_USE_PTHREADS_INIT)  # The pthreads library is available and allowed.
+        add_definitions(-DGTEST_HAS_PTHREAD=1)
+        target_link_libraries(gtest ${CMAKE_THREAD_LIBS_INIT})
+    else()
+        add_definitions(-DGTEST_HAS_PTHREAD=0)
+    endif()
 endif()
 
 # Add a standard test
