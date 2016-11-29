@@ -84,14 +84,13 @@ GTEST_TEST(BasicTest, Arrays)
     EXPECT_EQ(1, SharedInt::ReferenceCount());
 }
 
+struct Data { int value = 0; };
 GTEST_TEST(BasicTest, Failure)
 {
-    struct Data { int value = 0; };
     COW<Data> d;
 
     // Access should work on a default constructed object.
     d->value = 1;
-
 }
 
 GTEST_TEST(BasicTest, Count)
