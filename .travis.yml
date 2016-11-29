@@ -23,12 +23,11 @@ env:
 before_script:
   - export CXX="g++-4.8"
   # Create build folder
-  - mkdir ${TRAVIS_BUILD_DIR}/build
-  - cd ${TRAVIS_BUILD_DIR}/build
+  - mkdir build_release
   # Release build
-  - cmake -DCMAKE_BUILD_TYPE=release . ${TRAVIS_BUILD_DIR}/src
+  - cd build_release && cmake -DCMAKE_BUILD_TYPE=release ..
 
 script:
-  - make check
+  - cd build_release && make check
 
 
