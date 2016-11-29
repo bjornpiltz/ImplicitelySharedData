@@ -8,6 +8,8 @@ compiler:
 sudo: false
 
 addons:
+  sources:
+    - ubuntu-toolchain-r-test
   apt:
     packages:
       - cmake
