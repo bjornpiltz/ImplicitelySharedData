@@ -26,6 +26,12 @@ SOFTWARE.
 #include <memory>
 #include <cstdlib>
 
+#if defined(_MSC_VER) && (_MSC_VER<1900)
+#define NOEXCEPT 
+#else
+#define NOEXCEPT noexcept
+#endif
+
 /**
  * This is an implementation of the copy-on write idiom 
  * (or implicit sharing: http://doc.qt.io/qt-5/implicit-sharing.html).
@@ -82,21 +88,21 @@ template<typename T>
 class COW
 {
 public:
-    COW();// noexcept if T() is noexcept
-    COW(const COW& other)noexcept;
-    COW& operator=(const COW& other)noexcept;
+    COW();// NOEXCEPT if T() is NOEXCEPT
+    COW(const COW& other)NOEXCEPT;
+    COW& operator=(const COW& other)NOEXCEPT;
     ~COW();
 
-    template<typename... Args>
-    explicit COW(Args ... args);// Forwarding constructor
+    template<typename Arg0, typename... Args>
+    explicit COW(Arg0 arg0, Args ... args);// Forwarding constructor
 
           T* operator->();
-    const T* operator->()const noexcept;
+    const T* operator->()const NOEXCEPT;
 
           T& data();
-    const T& constData()const noexcept;
+    const T& constData()const NOEXCEPT;
 
-    void swap(COW& other)noexcept;
+    void swap(COW& other)NOEXCEPT;
     void detach();
 
 private:
@@ -119,7 +125,12 @@ private:
  */
 struct ReferenceCounted
 {
-    ReferenceCounted()=delete;
+    ReferenceCounted();
+    ReferenceCounted(void(*deleter)(ReferenceCounted*), int count)
+        : deleter(deleter)
+        , count(count)
+    {
+    }
     void(*deleter)(ReferenceCounted*);
     std::atomic<uint64_t> count;
 };
@@ -128,7 +139,7 @@ template<typename T>
 struct ReferenceCountedData : public ReferenceCounted
 {
     T data;
-    static void Destroy(ReferenceCounted* pointer)noexcept
+    static void Destroy(ReferenceCounted* pointer)NOEXCEPT
     {
         delete reinterpret_cast<ReferenceCountedData*>(pointer);
     }
@@ -148,14 +159,14 @@ struct ReferenceCountedData : public ReferenceCounted
 };
 
 template<typename T>
-inline COW<T>::COW(const COW & other)noexcept
+inline COW<T>::COW(const COW& other)NOEXCEPT
     : pointer(other.pointer)
 {
     ++pointer->count;
 }
 
 template<typename T>
-inline COW<T>& COW<T>::operator=(const COW& other)noexcept
+inline COW<T>& COW<T>::operator=(const COW& other)NOEXCEPT
 {
     COW(other).swap(*this);
     return *this;
@@ -168,7 +179,7 @@ inline T* COW<T>::operator->()
 }
 
 template<typename T>
-inline const T* COW<T>::operator->()const noexcept
+inline const T* COW<T>::operator->()const NOEXCEPT
 {
     return &constData();
 }
@@ -181,7 +192,7 @@ inline int COW<T>::count()const
 }
 
 template<typename T>
-inline void COW<T>::swap(COW& other)noexcept
+inline void COW<T>::swap(COW& other)NOEXCEPT
 {
     std::swap(pointer, other.pointer);
 }
@@ -194,7 +205,7 @@ inline T& COW<T>::data()
 }
 
 template<typename T>
-inline const T& COW<T>::constData()const noexcept
+inline const T& COW<T>::constData()const NOEXCEPT
 {
     return reinterpret_cast<ReferenceCountedData<T>*>(pointer)->data;
 }
@@ -211,9 +222,9 @@ inline void COW<T>::detach()
 }
 
 template<typename T>
-template<typename... Args>
-inline COW<T>::COW(Args... args)
-    : pointer(new ReferenceCountedData<T>(std::forward<Args>(args)...))
+template<typename Arg0, typename... Args>
+inline COW<T>::COW(Arg0 arg0, Args... args)
+    : pointer(new ReferenceCountedData<T>(std::forward<Arg0>(arg0), std::forward<Args>(args)...))
 {
 }
 

@@ -22,6 +22,7 @@ SOFTWARE.
 
 #pragma once
 #include <mutex>
+#include <memory>
 
 /**
 * Header only implementation of the Singleton pattern.
