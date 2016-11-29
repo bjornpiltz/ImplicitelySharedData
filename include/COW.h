@@ -21,7 +21,6 @@ SOFTWARE.
 */
 
 #pragma once
-#include "Singleton.h"
 #include <atomic>
 #include <memory>
 #include <cstdlib>
@@ -49,7 +48,7 @@ SOFTWARE.
       void resize();
    
    private:
-      COW<struct Private> data;
+      COW<struct Private> data;a
    }
  *
  * Implementation:
@@ -149,13 +148,11 @@ struct ReferenceCountedData : public ReferenceCounted
         , data(std::forward<Args>(args)...)
     {
     }
-    struct SharedNull : public ReferenceCountedData<T>
+    static ReferenceCountedData<T>& sharedNull()
     {
-        SharedNull()
-        {
-            count++;// We set the count to 2 so delete is never called.
-        }
-    };
+        static ReferenceCountedData<T> sharedNull;
+        return sharedNull;
+    }
 };
 
 template<typename T>
@@ -230,7 +227,7 @@ inline COW<T>::COW(Arg0 arg0, Args... args)
 
 template<typename T>
 inline COW<T>::COW()
-    : pointer(&Singleton<typename ReferenceCountedData<T>::SharedNull>::get())
+    : pointer(&ReferenceCountedData<T>::sharedNull())
 {
     ++pointer->count;
 }
