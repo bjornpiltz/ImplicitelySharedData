@@ -1,7 +1,7 @@
 version: 1.0.{build}
 
 environment:
-  WORK_DIR: "c:\\dev"
+  WORK_DIR: c:\dev
   matrix:
     - GENERATOR: "Visual Studio 14 2015 Win64"
     - GENERATOR: "Visual Studio 14 2015"
