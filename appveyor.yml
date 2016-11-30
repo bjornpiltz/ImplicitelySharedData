@@ -1,15 +1,14 @@
 version: 1.0.{build}
 
 environment:
-  WORK_DIR: c:\dev
   matrix:
     - GENERATOR: "Visual Studio 14 2015 Win64"
     - GENERATOR: "Visual Studio 14 2015"
     
-clone_folder: %WORK_DIR%\src
+clone_folder: c:\dev\src
 
 build_script:
-  - cd %WORK_DIR%
+  - cd c:\dev
   - mkdir build
   - cd build
   - cmake -G"%GENERATOR%" ../src
