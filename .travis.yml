@@ -47,7 +47,7 @@ after_success:
       cd $BUILD_COVERAGE;
       cmake ${TRAVIS_BUILD_DIR} -DBUILD_COVERAGE=ON;
       make check;
-      lcov --capture --directory $BUILD_COVERAGE --base-directory=${TRAVIS_BUILD_DIR} --output-file=coverage.info;
+      lcov --gcov-tool /usr/bin/gcov-4.8 --capture --directory $BUILD_COVERAGE --base-directory=${TRAVIS_BUILD_DIR} --output-file=coverage.info;
       lcov --extract coverage.info "*/ImplicitelySharedData/include/*" --output-file=coverage.info;
       coveralls-lcov coverage.info;
     fi
