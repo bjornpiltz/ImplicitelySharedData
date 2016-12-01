@@ -26,7 +26,14 @@ env:
 
 before_install:
  - gem install coveralls-lcov
-
+ 
+install:
+  # lcov 1.11
+  - if ["$CC" = "gcc"]; then
+      wget http://downloads.sourceforge.net/ltp/lcov-1.11.tar.gz &&
+      tar xvfz lcov-1.11.tar.gz && make -C lcov-1.11
+    fi
+    
 before_script:
   - export CXX="g++-4.8"
   - export CC="gcc-4.8"
@@ -47,8 +54,8 @@ after_success:
       cd $BUILD_COVERAGE;
       cmake ${TRAVIS_BUILD_DIR} -DBUILD_COVERAGE=ON;
       make check;
-      lcov --debug --gcov-tool /usr/bin/gcov-4.8 --capture --directory $BUILD_COVERAGE --base-directory=${TRAVIS_BUILD_DIR} --output-file=coverage.info;
-      lcov --extract coverage.info "*/ImplicitelySharedData/include/*" --output-file=coverage.info;
+      ${TRAVIS_BUILD_DIR}/lcov-1.11/lcov --gcov-tool /usr/bin/gcov-4.8 --capture --directory $BUILD_COVERAGE --base-directory=${TRAVIS_BUILD_DIR} --output-file=coverage.info;
+      ${TRAVIS_BUILD_DIR}/lcov --extract coverage.info "*/ImplicitelySharedData/include/*" --output-file=coverage.info;
       coveralls-lcov coverage.info;
     fi
 
