@@ -26,18 +26,18 @@ env:
 
 before_install:
  - gem install coveralls-lcov
+  - export CXX="g++-4.8"
+  - export CC="gcc-4.8"
+  - export GCOV="gcov-4.8"
  
 install:
   # lcov 1.11
-  - if ["$CC" = "gcc"]; then
+  - if ["$CC" = "gcc-4.8"]; then
       wget http://downloads.sourceforge.net/ltp/lcov-1.11.tar.gz &&
       tar xvfz lcov-1.11.tar.gz && make -C lcov-1.11;
     fi
     
 before_script:
-  - export CXX="g++-4.8"
-  - export CC="gcc-4.8"
-  - export GCOV="gcov-4.8"
   # Create build folder
   - mkdir $BUILD_RELEASE
   # Release build
