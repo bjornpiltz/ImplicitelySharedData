@@ -1,5 +1,6 @@
 # http://travis-ci.org configuration file
 language: cpp
+cache: apt
 
 compiler:
   - gcc
@@ -25,7 +26,7 @@ env:
     - BUILD_COVERAGE=${TRAVIS_BUILD_DIR}/coverage
 
 before_install:
- - gem install coveralls-lcov
+  - gem install coveralls-lcov
   - export CXX="g++-4.8"
   - export CC="gcc-4.8"
   - export GCOV="gcov-4.8"
