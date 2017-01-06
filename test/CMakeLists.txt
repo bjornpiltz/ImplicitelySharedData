@@ -1,5 +1,14 @@
 cmake_minimum_required(VERSION 2.8.11)
 
+option(BUILD_COVERAGE "Enable code coverage generation (gcc only)" OFF)
+
+IF(BUILD_COVERAGE AND CMAKE_COMPILER_IS_GNUCXX)
+    message("Building coverage information.")
+    set(CMAKE_BUILD_TYPE "Debug")
+    add_definitions(--coverage -fprofile-arcs -ftest-coverage)
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fprofile-arcs -ftest-coverage")
+endif()
+
 # Add the gtest library
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 add_library(gtest 
