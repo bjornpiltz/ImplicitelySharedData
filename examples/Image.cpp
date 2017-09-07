@@ -26,7 +26,7 @@ Image::Image(const char* filename)
 {
 }
 
-bool Image::write(const char* filename)
+bool Image::write(const char* filename)const
 {
     return true;
 }
@@ -51,30 +51,40 @@ bool Image::isValid()const
     return d->width>0 && d->height>0 && d->colorSpace != ColorSpace::Invalid;
 }
 
-Image& Image::scale(int width, int height)
+void Image::scale(int newWidth, int newHeight)&
 {
-    // Make sure the const access happens through the const reference
-    // otherwise a detach might be triggered unnecessarily.
-    const auto& data = d.constData();
-    if (data.width==width && data.height==height)
-        return *this;
+    if (width()==newWidth && height()==newHeight)
+        return;
 
-    // Change is necessary.
-    d->width = width;
-    d->height = height;
-
-    return *this;
+    // The following line triggers a copy if necessary.
+    d->width = newWidth;
+    d->height = newHeight;
 }
 
-Image Image::scaled(int width, int height)const
+Image Image::scaled(int width, int height)const&
 {
-    return Image(*this).scale(width, height);
+    return Image(*this).scaled(width, height);
 }
 
-Image Image::toGray()const
+Image Image::scaled(int width, int height)&&
 {
-    Image copy(*this);
-    if (copy.colorspace() != ColorSpace::Gray)
-        copy.d->colorSpace = ColorSpace::Gray;
-    return copy;
+    scale(width, height);
+    return std::move(*this);
+}
+
+void Image::convertToGray()&
+{
+    if (colorspace() != ColorSpace::Gray)
+        d->colorSpace = ColorSpace::Gray;
+}
+
+Image Image::asGray()const&
+{
+    return Image(*this).asGray();
+}
+
+Image Image::asGray()&&
+{
+    convertToGray();
+    return std::move(*this);
 }
