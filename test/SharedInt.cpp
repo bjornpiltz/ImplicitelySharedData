@@ -4,12 +4,18 @@
 
 struct PrivateInt
 {
-    PrivateInt(int i=0)
+    PrivateInt()
+        : value(0)
+    {
+        ++referenceCount;
+    }
+    explicit PrivateInt(int i)
         : value(i)
     {
         ++referenceCount;
     }
-    PrivateInt(const PrivateInt&)
+    PrivateInt(const PrivateInt& other)
+        : value(other.value)
     {
         ++referenceCount;
     }
