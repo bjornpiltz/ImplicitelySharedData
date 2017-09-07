@@ -1,5 +1,6 @@
 #include "SharedInt.h"
 #include "gtest/gtest.h"
+#include <atomic>
 
 struct PrivateInt
 {
@@ -63,7 +64,6 @@ std::size_t SharedInt::AllocatedCount()
 }
 
 SharedInt::SharedInt()
-    : d()
 {
 }
 

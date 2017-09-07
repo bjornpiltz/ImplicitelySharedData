@@ -3,7 +3,7 @@
 
 struct Private { int data=0; };
 
-// This should be allowed even if ForwardDeclarared is never defined.
+// This should be allowed even if ForwardDeclared is never defined.
 struct ForwardDeclaration
 {
     COW<struct ForwardDeclarared> d;
@@ -11,6 +11,7 @@ struct ForwardDeclaration
 
 #ifndef FAIL_LEVEL
 
+// Now we define ForwardDeclarared, which is why the following works.
 struct ForwardDeclarared {};
 
 GTEST_TEST(WontFail, empty)

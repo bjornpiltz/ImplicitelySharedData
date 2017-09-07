@@ -77,7 +77,9 @@ GTEST_TEST(BasicTest, Arrays)
     EXPECT_EQ(1, SharedInt::ReferenceCount());
 
     // Check that a single element has the size of one pointer: 
-    EXPECT_EQ(sizeof(void*), sizeof(array)/Size);
+    // Unfortunately shared_ptr, which the current implementation 
+    // is based on, has the size of two pointers.
+    EXPECT_EQ(2*sizeof(void*), sizeof(array)/Size);
 
     std::vector<SharedInt> vector(100);
     EXPECT_EQ(1, SharedInt::ReferenceCount());

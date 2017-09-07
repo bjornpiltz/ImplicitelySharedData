@@ -21,9 +21,7 @@ SOFTWARE.
 */
 
 #pragma once
-#include <atomic>
 #include <memory>
-#include <cstdlib>
 
 #if defined(_MSC_VER) && (_MSC_VER<1900)
 #define NOEXCEPT 
@@ -35,7 +33,7 @@ SOFTWARE.
  * This is an implementation of the copy-on write idiom 
  * (or implicit sharing: http://doc.qt.io/qt-5/implicit-sharing.html).
  * 
- * It can also be used as an opaque pointer with forward declarated types.
+ * It can also be used as an opaque pointer with forward declared types.
  * 
  * The standard use case looks like this.
  *
@@ -48,7 +46,7 @@ SOFTWARE.
       void resize();
    
    private:
-      COW<struct Private> data;a
+      COW<struct Private> data;
    }
  *
  * Implementation:
@@ -71,7 +69,7 @@ SOFTWARE.
        return d->resize(size()+1);
    }
 
- * TODO: document exception safety, reentrancy(i.e. thread safety)
+ * TODO: document exception safety, re-entrancy(i.e. thread safety)
  * 
  * The class is safe to use in a multi threaded environment since we 
  * use atomic counters for the reference counting.
@@ -79,7 +77,7 @@ SOFTWARE.
  * The class should be exception safe, provided the class T can make the
  * same promise.
  *
- * The class has the binary footprint of one pointer and the default constructor
+ * The class has the binary footprint of two pointers and the default constructor
  * does not allocate any memory on the heap. (all default constructed objects point to
  * the same static sharedNull object)
  */
@@ -87,10 +85,7 @@ template<typename T>
 class COW
 {
 public:
-    COW();// NOEXCEPT if T() is NOEXCEPT
-    COW(const COW& other)NOEXCEPT;
-    COW& operator=(const COW& other)NOEXCEPT;
-    ~COW();
+    COW();// noexcept if T() is noexcept
 
     template<typename Arg0, typename... Args>
     explicit COW(Arg0 arg0, Args ... args);// Forwarding constructor
@@ -105,9 +100,9 @@ public:
     void detach();
 
 private:
-    struct ReferenceCounted* pointer = nullptr;
+    std::shared_ptr<T> pointer;
+    static const std::shared_ptr<T>& sharedNull();
 
-private:
     friend class BasicTest_Count_Test;
     friend class BasicTest_DefaultConstructed_Test;
     int count()const;
@@ -118,56 +113,6 @@ private:
 //////////////////////////////////////////////////////////////////////////////
 //                    Implementation details follow:                        //
 //////////////////////////////////////////////////////////////////////////////
-
-/**
- * This helper class holds the atomic count and a function pointer do a 'deleter'.
- */
-struct ReferenceCounted
-{
-    ReferenceCounted();
-    ReferenceCounted(void(*deleter)(ReferenceCounted*), int count)
-        : deleter(deleter)
-        , count(count)
-    {
-    }
-    void(*deleter)(ReferenceCounted*);
-    std::atomic<uint64_t> count;
-};
-
-template<typename T>
-struct ReferenceCountedData : public ReferenceCounted
-{
-    T data;
-    static void Destroy(ReferenceCounted* pointer)NOEXCEPT
-    {
-        delete reinterpret_cast<ReferenceCountedData*>(pointer);
-    }
-    template<typename... Args>
-    ReferenceCountedData(Args ... args)
-        : ReferenceCounted{ &Destroy, {1} }
-        , data(std::forward<Args>(args)...)
-    {
-    }
-    static ReferenceCountedData<T>& sharedNull()
-    {
-        static ReferenceCountedData<T> sharedNull;
-        return sharedNull;
-    }
-};
-
-template<typename T>
-inline COW<T>::COW(const COW& other)NOEXCEPT
-    : pointer(other.pointer)
-{
-    ++pointer->count;
-}
-
-template<typename T>
-inline COW<T>& COW<T>::operator=(const COW& other)NOEXCEPT
-{
-    COW(other).swap(*this);
-    return *this;
-}
 
 template<typename T>
 inline T* COW<T>::operator->()
@@ -185,57 +130,51 @@ template<typename T>
 inline int COW<T>::count()const
 {
     // This function should only ever be accessed through the unit tests.
-    return (int)pointer->count;
+    return (int)pointer.use_count();
 }
 
 template<typename T>
 inline void COW<T>::swap(COW& other)NOEXCEPT
 {
-    std::swap(pointer, other.pointer);
+    pointer.swap(other);
 }
 
 template<typename T>
 inline T& COW<T>::data()
 {
     detach();
-    return reinterpret_cast<ReferenceCountedData<T>*>(pointer)->data;
+    return *pointer;
 }
 
 template<typename T>
 inline const T& COW<T>::constData()const NOEXCEPT
 {
-    return reinterpret_cast<ReferenceCountedData<T>*>(pointer)->data;
+    return *pointer;
 }
 
 template<typename T>
 inline void COW<T>::detach()
 {
-    auto& count = pointer->count;
-    if (count>1)
-    {
-        pointer = new ReferenceCountedData<T>(constData());
-        --count;
-    }
+    if (!pointer.unique())
+        pointer = std::make_shared<T>(*pointer);
 }
 
 template<typename T>
 template<typename Arg0, typename... Args>
 inline COW<T>::COW(Arg0 arg0, Args... args)
-    : pointer(new ReferenceCountedData<T>(std::forward<Arg0>(arg0), std::forward<Args>(args)...))
+    : pointer(std::make_shared<T>(std::forward<Arg0>(arg0), std::forward<Args>(args)...))
 {
 }
 
 template<typename T>
 inline COW<T>::COW()
-    : pointer(&ReferenceCountedData<T>::sharedNull())
+    : pointer(sharedNull())
 {
-    ++pointer->count;
 }
 
 template<typename T>
-inline COW<T>::~COW()
+const std::shared_ptr<T>& COW<T>::sharedNull()
 {
-    if (--pointer->count==0)
-        pointer->deleter(pointer);
+    static std::shared_ptr<T> sharedNull = std::make_shared<T>();
+    return sharedNull;
 }
-
