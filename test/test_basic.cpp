@@ -210,13 +210,13 @@ private:
     struct ThrowsIfCopied
     {
         ThrowsIfCopied()=default;
-        ThrowsIfCopied(int){}
+        explicit ThrowsIfCopied(int){}
 
         ThrowsIfCopied(const ThrowsIfCopied&){throw 1;}
-        void operator=(const ThrowsIfCopied&){throw 1;}
+        ThrowsIfCopied& operator=(const ThrowsIfCopied&){throw 1;}
 
         ThrowsIfCopied(ThrowsIfCopied&&)=delete;
-        void operator=(ThrowsIfCopied&&)=delete;
+        ThrowsIfCopied& operator=(ThrowsIfCopied&&)=delete;
     };
     COW<ThrowsIfCopied> d;
 };
