@@ -1,6 +1,15 @@
 #include "gtest/gtest.h"
 #include "SharedInt.h"
 
+struct Data { int value = 77; };
+GTEST_TEST(BasicTest, PlainCOW)
+{
+    COW<Data> d;
+
+    // Access should work on a default constructed object.
+    EXPECT_EQ(77, d->value);
+}
+
 GTEST_TEST(BasicTest, DefaultConstructed)
 {
     SharedInt::AllowAllocations(false);
@@ -83,15 +92,6 @@ GTEST_TEST(BasicTest, Arrays)
 
     std::vector<SharedInt> vector(100);
     EXPECT_EQ(1, SharedInt::ReferenceCount());
-}
-
-struct Data { int value = 0; };
-GTEST_TEST(BasicTest, Failure)
-{
-    COW<Data> d;
-
-    // Access should work on a default constructed object.
-    d->value = 1;
 }
 
 GTEST_TEST(BasicTest, Count)
@@ -184,3 +184,54 @@ GTEST_TEST(BasicTest, perfectForwarding)
     EXPECT_EQ(1, copy_count);
     EXPECT_EQ(1, assignment_count);
 }
+
+#ifdef HAVE_CXX_REFERENCE_QUALIFIED_FUNCTIONS
+class CopyChecker
+{
+public:
+    CopyChecker()
+        : d(0)
+    {
+    }
+    void modify()&
+    {
+        d.detach();
+    }
+    CopyChecker modified()const&
+    {
+        return CopyChecker(*this).modified();
+    }
+    CopyChecker modified()&&
+    {
+        modify();
+        return std::move(*this);
+    }
+private:
+    struct ThrowsIfCopied
+    {
+        ThrowsIfCopied()=default;
+        ThrowsIfCopied(int){}
+
+        ThrowsIfCopied(const ThrowsIfCopied&){throw 1;}
+        void operator=(const ThrowsIfCopied&){throw 1;}
+
+        ThrowsIfCopied(ThrowsIfCopied&&)=delete;
+        void operator=(ThrowsIfCopied&&)=delete;
+    };
+    COW<ThrowsIfCopied> d;
+};
+
+GTEST_TEST(BasicTest, NoNeedLessCopies)
+{
+    CopyChecker a;
+
+    // modify() works in place and does not trigger a copy:
+    a.modify();
+
+    // modified() doesn't throw, when called on an rvalue.
+    CopyChecker().modified().modified().modified();
+    
+    // Calling modified() on an lvalue will trigger a copy.
+    EXPECT_THROW( auto b = a.modified(), int);
+}
+#endif
