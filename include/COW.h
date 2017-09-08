@@ -55,7 +55,7 @@ SOFTWARE.
    struct Private
    {
       std::vector<char> data;
-   }
+   };
 
    void SomeClass::size()const
    {
@@ -77,9 +77,18 @@ SOFTWARE.
  * The class should be exception safe, provided the class T can make the
  * same promise.
  *
- * The class has the binary footprint of two pointers and the default constructor
- * does not allocate any memory on the heap. (all default constructed objects point to
- * the same static sharedNull object)
+ * The class has the binary footprint of two pointers.
+ *
+ * The default constructor will result in a call to new to create a default
+ * constructed object. You can avoid this by creating a static member named 
+ * shared_null with the following signature:
+ 
+   struct Private
+   {
+     static std::shared_ptr<Private> shared_null = std::make_shared<Private>();
+   };
+
+ * Now all default constructed COW<Private> will point to the same shared_null object.
  */
 template<typename T>
 class COW
@@ -101,11 +110,24 @@ public:
 
 private:
     std::shared_ptr<T> pointer;
-    static const std::shared_ptr<T>& sharedNull();
 
     friend class BasicTest_Count_Test;
     friend class BasicTest_DefaultConstructed_Test;
     int count()const;
+
+    struct general_ {};
+    struct special_ : general_ {};
+    template<typename> struct int_ { typedef int type; };
+
+    template<typename int_<decltype(T::shared_null)>::type = 0>
+    std::shared_ptr<T> defaultConstruct(special_) 
+    {
+        return T::shared_null;
+    }
+    std::shared_ptr<T> defaultConstruct(general_) 
+    {
+       return std::make_shared<T>();
+    }
 };
 
 
@@ -168,13 +190,6 @@ inline COW<T>::COW(Arg0 arg0, Args... args)
 
 template<typename T>
 inline COW<T>::COW()
-    : pointer(sharedNull())
+    : pointer(defaultConstruct(COW<T>::special_()))
 {
-}
-
-template<typename T>
-const std::shared_ptr<T>& COW<T>::sharedNull()
-{
-    static std::shared_ptr<T> sharedNull = std::make_shared<T>();
-    return sharedNull;
 }

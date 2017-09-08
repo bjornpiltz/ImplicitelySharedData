@@ -13,7 +13,7 @@ GTEST_TEST(BasicTest, PlainCOW)
 GTEST_TEST(BasicTest, DefaultConstructed)
 {
     SharedInt::AllowAllocations(false);
-    EXPECT_EQ(0, SharedInt::ReferenceCount());
+    EXPECT_EQ(1, SharedInt::ReferenceCount());
 
     SharedInt a, b, c;
     EXPECT_EQ(0, a.value());
@@ -126,35 +126,37 @@ static int copy_count = 0;
 static int forwarding_count = 0;
 static int assignment_count = 0;
 
+struct ConstructorTester
+{
+    ConstructorTester()
+    {
+        ctor_count++;
+    }
+    ConstructorTester(const ConstructorTester&)
+    {
+        copy_count++;
+    }
+    ConstructorTester(ConstructorTester&&)
+    {
+        forwarding_count++;
+    }
+    ConstructorTester& operator=(const ConstructorTester&)
+    {
+        assignment_count++;
+        return *this;
+    }
+    static ConstructorTester get()
+    {
+        ConstructorTester tmp;
+        return std::move(tmp);
+    }
+    static std::shared_ptr<ConstructorTester> shared_null;
+};
+std::shared_ptr<ConstructorTester> ConstructorTester::shared_null = std::make_shared<ConstructorTester>();
+
 GTEST_TEST(BasicTest, perfectForwarding)
 {
-    struct ConstructorTester
-    {
-        ConstructorTester()
-        {
-            ctor_count++;
-        }
-        ConstructorTester(const ConstructorTester&)
-        {
-            copy_count++;
-        }
-        ConstructorTester(ConstructorTester&&)
-        {
-            forwarding_count++;
-        }
-        ConstructorTester& operator=(const ConstructorTester&)
-        {
-            assignment_count++;
-            return *this;
-        }
-        static ConstructorTester get()
-        {
-            ConstructorTester tmp;
-            return std::move(tmp);
-        }
-    };
-
-    EXPECT_EQ(0, ctor_count);
+    EXPECT_EQ(1, ctor_count);
     EXPECT_EQ(0, copy_count);
     EXPECT_EQ(0, forwarding_count);
     EXPECT_EQ(0, assignment_count);
