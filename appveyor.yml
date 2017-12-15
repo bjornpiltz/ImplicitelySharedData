@@ -25,6 +25,6 @@ build_script:
   - cmake --build . --config Release --target check
 
 build:
-  parallel: true
-  verbosity: minimal
-
+  - parallel: true
+  - verbosity: minimal
+  
