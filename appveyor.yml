@@ -13,6 +13,10 @@ environment:
     
 clone_folder: c:\dev\src
 
+branches:
+  only:
+    master
+    
 before_build:
 # Cut some noise as described here: http://bit.ly/2gUJxhC
 - del "C:\Program Files (x86)\MSBuild\14.0\Microsoft.Common.targets\ImportAfter\Xamarin.Common.targets"
