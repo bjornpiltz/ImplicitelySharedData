@@ -24,7 +24,4 @@ build_script:
   - cmake -G"%GENERATOR%" ../src
   - cmake --build . --config Release --target check
 
-build:
-  parallel: true
-  verbosity: minimal
 
