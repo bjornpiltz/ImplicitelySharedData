@@ -23,12 +23,6 @@ SOFTWARE.
 #pragma once
 #include <memory>
 
-#if defined(_MSC_VER) && (_MSC_VER<1900)
-#define NOEXCEPT 
-#else
-#define NOEXCEPT noexcept
-#endif
-
 /**
  * This is an implementation of the copy-on write idiom 
  * (or implicit sharing: http://doc.qt.io/qt-5/implicit-sharing.html).
@@ -65,7 +59,7 @@ SOFTWARE.
    void SomeClass::resize()
    {
        // The following line detaches this instance, i.e. makes
-       // a copy of other instances point to the same data.
+       // a copy if other instances point to the same data.
        return d->resize(size()+1);
    }
 
@@ -74,7 +68,7 @@ SOFTWARE.
  * The class is safe to use in a multi threaded environment since we 
  * use atomic counters for the reference counting.
  *
- * The class should be exception safe, provided the class T can make the
+ * The class is exception safe, provided the class T can make the
  * same promise.
  *
  * The class has the binary footprint of two pointers and the default constructor
@@ -82,26 +76,26 @@ SOFTWARE.
  * the same static sharedNull object)
  */
 template<typename T>
-class COW
+class COW final
 {
 public:
-    COW();// noexcept if T() is noexcept
+    COW() noexcept(noexcept(T()));
 
     template<typename Arg0, typename... Args>
-    explicit COW(Arg0 arg0, Args ... args);// Forwarding constructor
+    explicit COW(Arg0&& arg0, Args&& ... args);// Forwarding constructor
 
           T* operator->();
-    const T* operator->()const NOEXCEPT;
+    const T* operator->()const noexcept;
 
           T& data();
-    const T& constData()const NOEXCEPT;
+    const T& constData()const noexcept;
 
-    void swap(COW& other)NOEXCEPT;
+    void swap(COW&& other)noexcept;
     void detach();
 
 private:
     std::shared_ptr<T> pointer;
-    static const std::shared_ptr<T>& sharedNull();
+    static const std::shared_ptr<T>& sharedNull() noexcept(noexcept(T()));
 
     friend class BasicTest_Count_Test;
     friend class BasicTest_DefaultConstructed_Test;
@@ -121,7 +115,7 @@ inline T* COW<T>::operator->()
 }
 
 template<typename T>
-inline const T* COW<T>::operator->()const NOEXCEPT
+inline const T* COW<T>::operator->()const noexcept
 {
     return &constData();
 }
@@ -134,7 +128,7 @@ inline int COW<T>::count()const
 }
 
 template<typename T>
-inline void COW<T>::swap(COW& other)NOEXCEPT
+inline void COW<T>::swap(COW&& other)noexcept
 {
     pointer.swap(other);
 }
@@ -147,7 +141,7 @@ inline T& COW<T>::data()
 }
 
 template<typename T>
-inline const T& COW<T>::constData()const NOEXCEPT
+inline const T& COW<T>::constData()const noexcept
 {
     return *pointer;
 }
@@ -161,20 +155,20 @@ inline void COW<T>::detach()
 
 template<typename T>
 template<typename Arg0, typename... Args>
-inline COW<T>::COW(Arg0 arg0, Args... args)
+inline COW<T>::COW(Arg0&& arg0, Args&&... args)
     : pointer(std::make_shared<T>(std::forward<Arg0>(arg0), std::forward<Args>(args)...))
 {
 }
 
 template<typename T>
-inline COW<T>::COW()
+inline COW<T>::COW() noexcept(noexcept(T()))
     : pointer(sharedNull())
 {
 }
 
 template<typename T>
-const std::shared_ptr<T>& COW<T>::sharedNull()
+const std::shared_ptr<T>& COW<T>::sharedNull()noexcept(noexcept(T()))
 {
-    static std::shared_ptr<T> sharedNull = std::make_shared<T>();
+    static std::shared_ptr<T> sharedNull{std::make_shared<T>()};
     return sharedNull;
 }
