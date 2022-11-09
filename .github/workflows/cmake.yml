@@ -46,5 +46,7 @@ jobs:
     - run: sudo apt-get install --assume-yes --quiet --no-install-suggests --no-install-recommends lcov
     - run: cmake -DBUILD_COVERAGE=ON -B ${{github.workspace}}/coverage
     - run: cmake --build ${{github.workspace}}/coverage --target check
-    - run: lcov --capture --directory $BUILD_COVERAGE --base-directory=${{github.workspace}} --output-file=coverage.info;
+    - run: lcov --capture --directory ${{github.workspace}}/coverage --base-directory=${{github.workspace}} --output-file=coverage.info
+    - run: lcov --extract coverage.info "*/ImplicitelySharedData/include/*" --output-file=coverage.info
+    - run: coveralls-lcov coverage.info
       
