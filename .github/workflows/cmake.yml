@@ -43,4 +43,7 @@ jobs:
       with:
         ruby-version: '2.6' # Version range or exact version of a Ruby version to use, using semvers version range syntax.
     - run: gem install coveralls-lcov
+    - run: cmake -DBUILD_COVERAGE=ON -B ${{github.workspace}}/build
+    - run: make check
+    - run: lcov --capture --directory $BUILD_COVERAGE --base-directory=${{github.workspace}} --output-file=coverage.info;
       
