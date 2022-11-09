@@ -2,9 +2,9 @@ name: CMake
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "main" ]
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
@@ -34,4 +34,25 @@ jobs:
       # Execute tests defined by the CMake configuration.  
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
       run: ctest -C ${{env.BUILD_TYPE}}
+      
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-ruby@v1
+      with:
+        ruby-version: '2.6' # Version range or exact version of a Ruby version to use, using semvers version range syntax.
+    - run: gem install coveralls-lcov
+    - run: sudo apt-get install --assume-yes --quiet --no-install-suggests --no-install-recommends lcov
+    - run: cmake -DBUILD_COVERAGE=ON -B ${{github.workspace}}/coverage
+    - run: cmake --build ${{github.workspace}}/coverage --target check
+    - run: lcov --capture --directory ${{github.workspace}}/coverage --base-directory=${{github.workspace}} --output-file=coverage.info
+    - run: lcov --extract coverage.info "*/ImplicitelySharedData/include/*" --output-file=coverage.info
+    - run: coveralls-lcov coverage.info
+    
+    - name: Coveralls Upload
+      uses: coverallsapp/github-action@master
+      with:
+        path-to-lcov: coverage.info
+        github-token: ${{ secrets.GITHUB_TOKEN }}
       
