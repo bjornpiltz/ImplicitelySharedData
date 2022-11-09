@@ -185,7 +185,6 @@ GTEST_TEST(BasicTest, perfectForwarding)
     EXPECT_EQ(1, assignment_count);
 }
 
-#ifdef HAVE_CXX_REFERENCE_QUALIFIED_FUNCTIONS
 class CopyChecker
 {
 public:
@@ -234,4 +233,3 @@ GTEST_TEST(BasicTest, NoNeedLessCopies)
     // Calling modified() on an lvalue will trigger a copy.
     EXPECT_THROW( auto b = a.modified(), int);
 }
-#endif
